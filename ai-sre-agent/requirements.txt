@@ -1,0 +1,5 @@
+langchain>=0.1.0
+langchain-openai>=0.0.5
+prometheus-api-client>=0.5.0
+requests>=2.31.0
+structlog>=24.1.0
