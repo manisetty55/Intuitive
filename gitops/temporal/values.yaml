@@ -1,0 +1,148 @@
+# Temporal Server Configuration
+# Deploys: frontend, history, matching, worker with embedded PostgreSQL
+# Metrics exposed at :9090/metrics for Prometheus scraping
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: temporal
+    username: temporal
+    password: temporal
+    database: temporal
+  primary:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 5Gi
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: temporal-postgresql
+            port: 5432
+            database: temporal
+            user: temporal
+            password: temporal
+            maxConns: 20
+            maxConnLifetime: "1h"
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: temporal-postgresql
+            port: 5432
+            database: temporal_visibility
+            user: temporal
+            password: temporal
+            maxConns: 20
+            maxConnLifetime: "1h"
+
+    # Prometheus metrics configuration
+    metrics:
+      prometheus:
+        timerType: histogram
+        listenAddress: "0.0.0.0:9090"
+
+    frontend:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+    history:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+    matching:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+    worker:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+  # Disable components we don't need for local stack
+  cassandra:
+    enabled: false
+  mysql:
+    enabled: false
+  elasticsearch:
+    enabled: false
+
+  # Schema management
+  schema:
+    setup:
+      enabled: true
+    update:
+      enabled: true
+
+  # Web UI (optional, useful for local development)
+  web:
+    enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  # Admin tools
+  admintools:
+    enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi

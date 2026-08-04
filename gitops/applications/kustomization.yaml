@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: applications
+
+resources:
+  - sample-api/deployment.yaml
+  - sample-api/service.yaml
+  - sample-api/servicemonitor.yaml

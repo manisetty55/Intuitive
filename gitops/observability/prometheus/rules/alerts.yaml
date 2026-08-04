@@ -1,0 +1,75 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-alerts
+  namespace: observability
+  labels:
+    app: prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: sample-api-alerts
+      rules:
+        # High error rate alert
+        - alert: HighErrorRate
+          expr: rate(error_count{service="sample-api"}[5m]) > 0.05
+          for: 1m
+          labels:
+            severity: warning
+            service: sample-api
+          annotations:
+            summary: "Sample API error rate is elevated"
+            description: "The error rate for sample-api has exceeded 5% for more than 1 minute. Current rate: {{ $value }}"
+
+        # Pod not ready alert
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace=~"observability|temporal|applications|ai-sre", condition="true"} == 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is not ready"
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been in a not-ready state for more than 2 minutes."
+
+        # High request latency (p95) alert
+        - alert: HighRequestLatencyP95
+          expr: histogram_quantile(0.95, sum(rate(request_duration_seconds_bucket{service="sample-api"}[5m])) by (le)) > 0.3
+          for: 2m
+          labels:
+            severity: warning
+            service: sample-api
+          annotations:
+            summary: "Sample API p95 latency is elevated"
+            description: "The 95th percentile request latency for sample-api has exceeded 300ms for more than 2 minutes. Current value: {{ $value }}s"
+
+    - name: platform-health-alerts
+      rules:
+        # Container restart alert
+        - alert: ContainerRestarting
+          expr: rate(kube_pod_container_status_restarts_total{namespace=~"observability|temporal|applications|ai-sre"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} is restarting"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has been restarting over the last 15 minutes."
+
+        # High memory usage alert
+        - alert: HighMemoryUsage
+          expr: container_memory_working_set_bytes{namespace=~"observability|temporal|applications|ai-sre"} / container_spec_memory_limit_bytes > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Container {{ $labels.container }} memory usage > 90% of limit"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using more than 90% of its memory limit for over 5 minutes."
+
+        # High CPU usage alert
+        - alert: HighCPUUsage
+          expr: rate(container_cpu_usage_seconds_total{namespace=~"observability|temporal|applications|ai-sre"}[5m]) / container_spec_cpu_quota * container_spec_cpu_period > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Container {{ $labels.container }} CPU usage > 90% of limit"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using more than 90% of its CPU limit for over 5 minutes."

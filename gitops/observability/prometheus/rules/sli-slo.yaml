@@ -1,0 +1,34 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sample-api-slo
+  namespace: observability
+  labels:
+    app: prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: sli
+      interval: 15s
+      rules:
+        # SLI: Request latency at the 99th percentile for sample-api
+        - record: sli:request_latency_p99
+          expr: histogram_quantile(0.99, sum(rate(request_duration_seconds_bucket{service="sample-api"}[5m])) by (le))
+          labels:
+            service: sample-api
+            sli: latency_p99
+
+    - name: slo-alerts
+      rules:
+        # SLO Alert: p99 latency exceeds 500ms threshold for 1 minute
+        - alert: SLOLatencyBreach
+          expr: sli:request_latency_p99 > 0.5
+          for: 1m
+          labels:
+            severity: critical
+            service: sample-api
+            slo: latency_p99_500ms
+          annotations:
+            summary: "Sample API p99 latency exceeds 500ms SLO"
+            description: "The 99th percentile request latency for sample-api has exceeded the 500ms SLO threshold for more than 1 minute. Current value: {{ $value }}s"
+            runbook_url: "https://wiki.example.com/runbooks/slo-latency-breach"

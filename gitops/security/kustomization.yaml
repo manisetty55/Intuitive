@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # Namespace labels for NetworkPolicy namespaceSelector support
+  - namespace-labels.yaml
+  # Default-deny network policies per namespace
+  - network-policies/observability-netpol.yaml
+  - network-policies/temporal-netpol.yaml
+  - network-policies/applications-netpol.yaml
+  - network-policies/ai-sre-netpol.yaml
+  # Selective allow policies for required cross-namespace paths
+  - network-policies/allow-prometheus-scrape.yaml
+  - network-policies/allow-tempo-receive-traces.yaml
+  - network-policies/allow-ai-sre-to-observability.yaml
+  - network-policies/allow-temporal-internal.yaml
+  # RBAC resources
+  - rbac/serviceaccounts.yaml
+  - rbac/roles.yaml
+  - rbac/rolebindings.yaml

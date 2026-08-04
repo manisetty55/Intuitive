@@ -1,0 +1,197 @@
+# Loki - Log aggregation with local filesystem backend
+loki:
+  loki:
+    auth_enabled: false
+
+    commonConfig:
+      replication_factor: 1
+      path_prefix: /var/loki
+
+    storage:
+      type: filesystem
+
+    schemaConfig:
+      configs:
+        - from: "2024-01-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+
+    limits_config:
+      retention_period: 24h
+      ingestion_rate_mb: 10
+      ingestion_burst_size_mb: 20
+      max_streams_per_user: 10000
+      max_entries_limit_per_query: 5000
+
+    compactor:
+      working_directory: /var/loki/compactor
+      retention_enabled: true
+      delete_request_store: filesystem
+
+    ingester:
+      chunk_encoding: snappy
+
+    querier:
+      max_concurrent: 4
+
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+
+  # Deploy as single binary (monolithic mode for local stack)
+  deploymentMode: SingleBinary
+
+  singleBinary:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 5Gi
+
+  # Disable components not needed in single-binary mode
+  gateway:
+    enabled: false
+  backend:
+    replicas: 0
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+
+  # Monitoring - disable self-monitoring to save resources
+  monitoring:
+    selfMonitoring:
+      enabled: false
+    lokiCanary:
+      enabled: false
+
+  # Test pod not needed
+  test:
+    enabled: false
+
+# Promtail - DaemonSet to scrape logs from all pods
+promtail:
+  enabled: true
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  config:
+    # Loki push endpoint
+    clients:
+      - url: http://loki-stack-loki:3100/loki/api/v1/push
+        tenant_id: ""
+
+    snippets:
+      # Pipeline stages for JSON-structured log processing
+      pipelineStages:
+        # Try to parse JSON logs
+        - cri: {}
+        - json:
+            expressions:
+              level: level
+              timestamp: timestamp
+              message: message
+              trace_id: trace_id
+              span_id: span_id
+        # Extract the level label for indexing
+        - labels:
+            level:
+        # Set timestamp from log entry if available
+        - timestamp:
+            source: timestamp
+            format: RFC3339Nano
+            fallback_formats:
+              - RFC3339
+              - "2006-01-02T15:04:05.000Z"
+        # Set output from message field if present
+        - output:
+            source: message
+
+      # Scrape configs for Kubernetes pods
+      scrapeConfigs: |
+        - job_name: kubernetes-pods
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - observability
+                  - temporal
+                  - applications
+                  - ai-sre
+          relabel_configs:
+            # Keep only pods with containers
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              action: keep
+              regex: .+
+            # Set namespace label
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            # Set pod label
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            # Set container label
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
+            # Set app label if available
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              target_label: app
+              regex: (.+)
+            # Use pod name and container as job
+            - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_container_name]
+              separator: /
+              target_label: job
+            # Set the log file path
+            - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+              target_label: __path__
+              separator: /
+              replacement: /var/log/pods/*$1/*.log
+
+  # Mount host log directories
+  defaultVolumes:
+    - name: run
+      hostPath:
+        path: /run/promtail
+    - name: containers
+      hostPath:
+        path: /var/log/containers
+    - name: pods
+      hostPath:
+        path: /var/log/pods
+
+  defaultVolumeMounts:
+    - name: run
+      mountPath: /run/promtail
+    - name: containers
+      mountPath: /var/log/containers
+      readOnly: true
+    - name: pods
+      mountPath: /var/log/pods
+      readOnly: true
+
+  # Tolerate all taints to run on all nodes
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+    - effect: NoExecute
+      operator: Exists
+
+  # Annotations for monitoring
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3101"

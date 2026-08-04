@@ -1,0 +1,67 @@
+tempo:
+  # Tempo configuration
+  tempo:
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+
+    # Retention configuration - 24h minimum
+    retention: 24h
+
+    # Receivers - OTLP gRPC and HTTP
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
+    # Enable search for trace lookup by service, operation, duration
+    search_enabled: true
+
+    metrics_generator:
+      storage:
+        path: /var/tempo/generator/wal
+
+  # Server configuration
+  server:
+    http_listen_port: 3200
+
+  # Resource requests and limits for Tempo pods
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Persistence for local filesystem backend
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  # Pod annotations for Prometheus scraping
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3200"
+    prometheus.io/path: "/metrics"
+
+  # Service configuration exposing OTLP ports
+  service:
+    type: ClusterIP
+
+  # Tempo overrides configuration
+  overrides:
+    defaults:
+      search:
+        enabled: true
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics

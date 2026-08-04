@@ -1,0 +1,31 @@
+# Namespace label manifests
+# These ensure each managed namespace has the `name` label required for
+# NetworkPolicy namespaceSelector to work correctly.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    name: observability
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: temporal
+  labels:
+    name: temporal
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: applications
+  labels:
+    name: applications
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-sre
+  labels:
+    name: ai-sre

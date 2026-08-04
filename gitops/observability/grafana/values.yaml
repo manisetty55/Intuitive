@@ -1,0 +1,103 @@
+grafana:
+  # Anonymous access enabled for local assessment (no auth required)
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_name: Main Org.
+      org_role: Admin
+    auth:
+      disable_login_form: true
+    server:
+      root_url: "http://localhost:3000"
+
+  # Resource requests and limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  # Provisioned datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          uid: prometheus
+          url: http://prometheus-server.observability.svc.cluster.local:80
+          access: proxy
+          isDefault: true
+          editable: false
+          jsonData:
+            timeInterval: "15s"
+
+        - name: Loki
+          type: loki
+          uid: loki
+          url: http://loki.observability.svc.cluster.local:3100
+          access: proxy
+          editable: false
+          jsonData:
+            derivedFields:
+              - datasourceUid: tempo
+                matcherRegex: '"trace_id":"([a-f0-9]+)"'
+                name: TraceID
+                url: "$${__value.raw}"
+
+        - name: Tempo
+          type: tempo
+          uid: tempo
+          url: http://tempo.observability.svc.cluster.local:3100
+          access: proxy
+          editable: false
+          jsonData:
+            tracesToLogs:
+              datasourceUid: loki
+              filterByTraceID: true
+            nodeGraph:
+              enabled: true
+            search:
+              hide: false
+            lokiSearch:
+              datasourceUid: loki
+
+  # Dashboard provisioning via sidecar
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: true
+          editable: false
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  dashboardsConfigMaps:
+    default: grafana-dashboards
+
+  # Sidecar for dashboard loading
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      folder: /var/lib/grafana/dashboards/default
+      provider:
+        foldersFromFilesStructure: false
+    datasources:
+      enabled: false
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+
+  # Persistence
+  persistence:
+    enabled: false

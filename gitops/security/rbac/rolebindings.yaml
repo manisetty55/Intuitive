@@ -1,0 +1,105 @@
+# Namespace-scoped RoleBindings (no ClusterRoleBindings)
+# Each RoleBinding binds a ServiceAccount to its corresponding Role within the same namespace
+# This ensures Secret access is restricted to same-namespace ServiceAccounts only
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-rolebinding
+  namespace: observability
+  labels:
+    app: prometheus
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: observability
+roleRef:
+  kind: Role
+  name: prometheus-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-rolebinding
+  namespace: observability
+  labels:
+    app: grafana
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: observability
+roleRef:
+  kind: Role
+  name: grafana-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: temporal-server-rolebinding
+  namespace: temporal
+  labels:
+    app: temporal-server
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: temporal-server
+    namespace: temporal
+roleRef:
+  kind: Role
+  name: temporal-server-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: temporal-worker-rolebinding
+  namespace: temporal
+  labels:
+    app: temporal-worker
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: temporal-worker
+    namespace: temporal
+roleRef:
+  kind: Role
+  name: temporal-worker-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sample-api-rolebinding
+  namespace: applications
+  labels:
+    app: sample-api
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: sample-api
+    namespace: applications
+roleRef:
+  kind: Role
+  name: sample-api-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-sre-agent-rolebinding
+  namespace: ai-sre
+  labels:
+    app: ai-sre-agent
+    managed-by: platform-stack
+subjects:
+  - kind: ServiceAccount
+    name: ai-sre-agent
+    namespace: ai-sre
+roleRef:
+  kind: Role
+  name: ai-sre-agent-role
+  apiGroup: rbac.authorization.k8s.io

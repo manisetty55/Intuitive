@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-sre-agent
+  namespace: ai-sre
+  labels:
+    app: ai-sre-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-sre-agent
+  template:
+    metadata:
+      labels:
+        app: ai-sre-agent
+    spec:
+      containers:
+        - name: ai-sre-agent
+          image: ai-sre-agent:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          envFrom:
+            - configMapRef:
+                name: ai-sre-agent-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-sre-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+          volumeMounts:
+            - name: reports
+              mountPath: /reports
+      volumes:
+        - name: reports
+          persistentVolumeClaim:
+            claimName: ai-sre-reports

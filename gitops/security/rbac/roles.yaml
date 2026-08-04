@@ -1,0 +1,107 @@
+# Namespace-scoped Roles with explicit permissions (no wildcards)
+# Each Role grants only the permissions required by its associated ServiceAccount
+---
+# Prometheus needs to read pods, services, and endpoints for service discovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-role
+  namespace: observability
+  labels:
+    app: prometheus
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+# Grafana needs read access to configmaps (dashboards/datasources) and secrets (credentials)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-role
+  namespace: observability
+  labels:
+    app: grafana
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+# Temporal server needs to manage pods, services, configmaps, and access secrets in its namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: temporal-server-role
+  namespace: temporal
+  labels:
+    app: temporal-server
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+# Temporal worker needs to read pods, services, configmaps and secrets for workflow execution
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: temporal-worker-role
+  namespace: temporal
+  labels:
+    app: temporal-worker
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+# Sample API needs minimal permissions — read configmaps for config, access secrets for credentials
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sample-api-role
+  namespace: applications
+  labels:
+    app: sample-api
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+# AI SRE Agent needs to read its ConfigMap and Secrets for configuration
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-sre-agent-role
+  namespace: ai-sre
+  labels:
+    app: ai-sre-agent
+    managed-by: platform-stack
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]

@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tempo-receive-traces
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app: tempo
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: applications
+          podSelector:
+            matchLabels:
+              app: sample-api
+        - namespaceSelector:
+            matchLabels:
+              name: ai-sre
+          podSelector:
+            matchLabels:
+              app: ai-sre-agent
+      ports:
+        - port: 4317
+          protocol: TCP
+        - port: 4318
+          protocol: TCP
